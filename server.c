@@ -7,7 +7,7 @@
 #include <netinet/in.h>		// 인터넷 주소 체계 (in_port_t)
 #include <pthread.h>		// 쓰레드
 
-#define BUF_SIZE 1024			// 채팅할 때 메시지 최대 길이
+#define BUF_SIZE 256			// 채팅할 때 메시지 최대 길이
 #define MAX_CLNT 256			// 최대 동시 접속자 수
 #define MAX_ROOM 256			// 최대 개설 가능한 방의 갯수
 #define ROOM_ID_DEFAULT		-1	// 방의 초기 ID 값(방은 리스트로 구현되고 ID를 가진다.)
@@ -42,7 +42,7 @@ struct Room					// 채팅방 구조체 선언
 	int id;					// 방의 번호
 	char name[BUF_SIZE];	// 방의 이름
 };
-typedef struct Room Room;
+typedef struct Room Room;	
 
 int sizeRoom = 0;				// arrRoom 배열의 size
 Room arrRoom[MAX_ROOM];		// Room의 배열(현재 개설된 방의 배열)
@@ -82,7 +82,7 @@ void removeClient(int socket)
 	pthread_mutex_unlock(&mutx);	// 임계영역 끝
 }
 
-// 드이어 메인함수 등장
+
 int main(int argc, char *argv[])	// 인자로 포트번호 받음
 {
 	int serv_sock, clnt_sock;		// 소켓통신 용 서버 소켓과 임시 클라이언트 소켓
@@ -92,7 +92,7 @@ int main(int argc, char *argv[])	// 인자로 포트번호 받음
 	pthread_t t_id;					// 클라이언트 쓰레드용 ID
 	pthread_t serv_id;
 	void * thread_return; 
-							
+								// 포트 입력안했으면
 	if (argc != 2) {	
 		printf("Usage : %s <port>\n", argv[0]);	// 사용법을 알려준다.
 		exit(1);	// 프로그램 비정상 종료
@@ -115,7 +115,7 @@ int main(int argc, char *argv[])	// 인자로 포트번호 받음
 	if (listen(serv_sock, 5) == -1)
 		error_handling("listen() error");
 
-	while (1)	
+	while (1)	// 무한루프 돌면서
 	{
 		clnt_adr_sz = sizeof(clnt_adr);	// 클라이언트 구조체의 크기를 얻고
 		memset(nick, 0, sizeof(BUF_SIZE));
@@ -130,17 +130,17 @@ int main(int argc, char *argv[])	// 인자로 포트번호 받음
 
 		// 클라이언트 구조체의 주소를 쓰레드에게 넘긴다.(포트 포함됨)
 		pthread_create(&t_id, NULL, handle_clnt, (void*)client); // 쓰레드 시작	
-		pthread_create(&serv_id, NULL, handle_serv, (void*)client); 
+		pthread_create(&serv_id, NULL, handle_serv, (void*)client); // 
 
 		printf("%s is connected \n", client->name);
 
-		//pthread_join(t_id, &thread_return);
-		//pthread_join(serv_id, &thread_return);
 
 		pthread_detach(serv_id); 
 
-		pthread_detach(t_id);	//쓰레드가 종료되면 스스로 소멸되게 함
-					// 접속된 클라이언트의 IP를 화면에 찍어준다.
+
+		pthread_detach(t_id);	// 쓰레드가 종료되면 스스로 소멸되게 함
+					
+		
 	}
 	close(serv_sock);	
 	return 0;
@@ -161,14 +161,12 @@ void * handle_serv(void * arg)
 			for(i = 0; i < sizeClient; i++)
 			{
 				sendMessageUser(srcv_msg, arrClient[i].socket);
-				//shutdown(serv_sock, SHUT_WR);
+				
 				close(arrClient[i].socket);
 			}
 				exit(0);
 		}
-		else
-		{
-		}
+		
 	}
 	return NULL;
 }
@@ -185,23 +183,23 @@ void sendMessageRoom(char * msg, int roomId)   // send to the same room members
 	int i;
 	
 	pthread_mutex_lock(&mutx);		// 임계 영역 진입
-	for (i = 0; i<sizeClient; i++)		// 모든 사용자들 중에서 특정 방의 사람들에게 각각 메시지전송
+	for (i = 0; i<sizeClient; i++)		// 모든 사용자들 중에서
 	{
-		if (arrClient[i].roomId == roomId)	
-			sendMessageUser(msg, arrClient[i].socket); 
+		if (arrClient[i].roomId == roomId)	// 특정 방의 사람들에게
+			sendMessageUser(msg, arrClient[i].socket); // 각각 메시지전송
 	}
 	pthread_mutex_unlock(&mutx);	// 임계 영역 끝
 }
 
 // 특정 사용자가 방에 들어가 있습니까?
-BOOL isInARoom(int socket)	// yes, no로 대답할 수 있다.
+BOOL isInARoom(int socket)	
 {
 	int i = 0;
-	for (i = 0; i<sizeClient; i++)	// 클라이언트 배열에서 뒤져서 특정 사용자가 room id를 갖고있으면 방에 들어가 있는 것이다.
+	for (i = 0; i<sizeClient; i++)	// 클라이언트 배열에서 뒤져서
 	{
-		if (arrClient[i].socket == socket	
-			&& arrClient[i].roomId != ROOM_ID_DEFAULT)	
-			return TRUE;	
+		if (arrClient[i].socket == socket	// 특정 사용자가
+			&& arrClient[i].roomId != ROOM_ID_DEFAULT)	// room id를 갖고있으면
+			return TRUE;	// 방에 들어가 있는 것이다.
 	}
 	return FALSE;	// 아니면 방에 들어가 있지 않다.
 }
@@ -246,13 +244,13 @@ int getSelectedWaintingRoomMenu(char *msg)
 // "방의 메뉴" - 채팅하다가 나가고 싶을 땐 나가기 명령이 필요하다.
 void getSelectedRoomMenu(char * menu, char *msg)
 {
-	if (msg == NULL) return;	// 예외 처리 - 이런것 안하면 프로그램 죽음
+	if (msg == NULL) return;	// 예외 처리 
 
 	int indexSpace = getIndexSpace(msg);	// 공백문자 위치 얻기
 	if (indexSpace<0) return;	// 없으면 잘못된 패킷
 
 	char * firstByte = &msg[indexSpace + 1];	// 공백이후의 문자열 복사
-	strcpy(menu, firstByte);	// 그게 메뉴인데 4바이트 크기이다.
+	strcpy(menu, firstByte);	
 
 								// all menus have 4 byte length. remove \n
 	menu[4] = 0;	// 4바이트 에서 NULL 문자 넣어 문자열 끊기
@@ -319,7 +317,7 @@ void enterRoom(Client * client, int roomId) // 클라이언트가 roomID의 방�
 
 	// 결과 메시지를 클라이언트에게 소켓으로 돌려준다.
 	sendMessageRoom(buf, client->roomId);
-	//sendMessageUser(her, client->socket);
+	
 }
 
 // 방 만들기 함수
@@ -331,11 +329,11 @@ void createRoom(Client * client)	// 특정 사용자가 방을 개설한다.
 	char cmpRoomname[BUF_SIZE];
 
 	char buf[BUF_SIZE] = "";	// 사용자에게 돌려줄 메시지 임시 버퍼 초기화
-	sprintf(buf, "[server] : Input The Room Name:\n");	
+	sprintf(buf, "[server] : Input The Room Name:\n");	// "방 이름을 입력하세요."
 
-	sendMessageUser(buf, client->socket);	// 방이름을 바로 받아 저장한다.
+	sendMessageUser(buf, client->socket);	// 클라이언트에게 안내메시지 전송
 
-											
+											// 방이름을 바로 받아 저장한다.
 
 
 
@@ -345,7 +343,7 @@ void createRoom(Client * client)	// 특정 사용자가 방을 개설한다.
 		{
 			sscanf(arrRoom[i].name, "%s %s", name, originRoomname);
 			sscanf(buf, "%s %s", name, cmpRoomname);
-			if (strcmp(originRoomname, cmpRoomname) == 0) {    // 이름이 같은 방을 찾았으면 들어간다.
+			if (strcmp(originRoomname, cmpRoomname) == 0) {    // 이름이 같은 방을 찾았으면
 				enterRoom(client, arrRoom[i].id);
 				return;
 			}
@@ -364,9 +362,9 @@ void listRoom(Client * client)	// 특정 사용자가 방의 목록을 보고 �
 	int i = 0;					// 제어 변수
 
 	sprintf(buf, "[server] : List Room:\n");	// "방 목록을 표시하겠습니다."	
-	sendMessageUser(buf, client->socket);	// 모든 방의 목록을 전송한다.
+	sendMessageUser(buf, client->socket);	
 
-											
+											// 모든 방의 목록을 전송한다.
 	for (i = 0; i<sizeRoom; i++)	// 모든 방에 대해서	
 	{
 		Room * room = &(arrRoom[i]);	// 각각의 방을 들고와서
@@ -387,7 +385,7 @@ void listMember(Client * client, int roomId) // list client in a room
 	int i = 0;					// 제어변수
 	int sizeMember = 0;			// 접속중인 사용자의 수
 
-								
+								// "특정 방에 있는 사용자의 목록을 표시하겠습니다."
 	sprintf(buf, "[server] : List Member In This Room\n");
 	sendMessageUser(buf, client->socket); // 안내 메시지 표시
 
@@ -407,6 +405,8 @@ void listMember(Client * client, int roomId) // list client in a room
 	sendMessageUser(buf, client->socket);
 }
 
+
+
 int getRoomId(int socket)      // socket은 클라이언트 ID
 {
 	int i, roomId = -1;         // 방의 ID 초기값은 -1(못찾음)
@@ -420,14 +420,15 @@ int getRoomId(int socket)      // socket은 클라이언트 ID
 	if (read(socket, buf, sizeof(buf))>0)      // 방의 ID를 입력 받는다.
 	{
 		char name[BUF_SIZE] = "";
-		sscanf(buf, "%s %s", name, Roomname);   
+		sscanf(buf, "%s %s", name, Roomname);  
+												//Roomname[str_len] = 0;
 	}
 
 	for (i = 0; i < sizeRoom; i++)      // 모든 방에 대해서
 	{
 		sscanf(arrRoom[i].name, "%s %s", buf, originRoomname);
-		if (strcmp(originRoomname, Roomname) == 0)   // 만약에 특정 방을 찾았으면 방의 번호 반환
-			return arrRoom[i].id;    
+		if (strcmp(originRoomname, Roomname) == 0)   // 만약에 특정 방을 찾았으면
+			return arrRoom[i].id;   //  방의 번호 반환
 	}
 
 	return roomId;   // 없으면 에러의 방의 번호 반환
@@ -447,10 +448,10 @@ void printWaitingRoomMenu(Client * client)
 	sprintf(buf, "2) List Room\n");					// 방 목록 표시하기
 	sendMessageUser(buf, client->socket);
 
-	sprintf(buf, "3) Enter Room\n");				// 특정 방에 들어가기
+	sprintf(buf, "3) Enter Room\n");					// 특정 방에 들어가기
 	sendMessageUser(buf, client->socket);
 
-	sprintf(buf, "4) Info Room\n");					// 방 정보 표시
+	sprintf(buf, "4) Info Room\n");
 	sendMessageUser(buf, client->socket);
 
 	sprintf(buf, "5) How To Use\n");
@@ -599,7 +600,7 @@ void * handle_clnt(void * arg)	// 소켓을 들고 클라이언트와 통신하�
 	int str_len = 0, i;
 	char msg[BUF_SIZE];			// 메시지 버퍼
 
-								// is in the waiting room on start chat
+								
 	printWaitingRoomMenu(client);	// 채팅을 시작할 때 처음에 방 메뉴 표시
 
 	int clnt_sock = client->socket;	// 통신할 소켓 얻고
@@ -609,7 +610,7 @@ void * handle_clnt(void * arg)	// 소켓을 들고 클라이언트와 통신하�
 	while ((str_len = read(clnt_sock, msg, BUF_SIZE)) != 0)
 	{
 		printf("Read User(%d):%s\n", clnt_sock, msg); // 디버깅용으로 상태로그 표시
-														  // if is in a room
+														 
 		if (isInARoom(clnt_sock))	// 방 안에서 클라이언트가 메시지를 보내는 경우
 		{
 			char menu[BUF_SIZE] = "";
@@ -644,4 +645,5 @@ void error_handling(char * msg)
 	fputc('\n', stderr);
 	exit(1);				// 프로그램 종료
 }
+
 
